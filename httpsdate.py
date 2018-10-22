@@ -16,7 +16,8 @@ from statistics import median
 # Exit codes
 E_PRIV = 3
 E_NOTIME = 4
-E_LARGEOFFSET = 5
+E_NOTENOUGHTIME = 5
+E_LARGEOFFSET = 6
 
 # Set a nicer title than 'python3'.
 prctl.set_name('httpsdate.py')
@@ -79,6 +80,9 @@ parser.add_argument('-u', '--user', default='nobody',
                     'run as this user instead (default: %(default)s)')
 parser.add_argument('--max-adjust', metavar='seconds', type=int,
                     help='do not change the clock more than this many seconds')
+parser.add_argument('--max-failed', metavar='N', type=int,
+                    help='do not change the clock if more than N servers '
+                    'failed to send a usable date and time')
 parser.add_argument('-q', '--quiet', default=False, action='store_true',
                     help='do not show warnings and adjustment information')
 parser.add_argument('host', nargs='+',
@@ -112,10 +116,19 @@ for host in args.host:
         continue
     times.append(t)
 
+succeeded = len(times)
+failed = len(args.host) - len(times)
+
 # Check that at least one host was usable.
-if not times:
+if not succeeded:
     print('Error: Could not get time from any host.', file=sys.stderr)
     sys.exit(E_NOTIME)
+
+# Check that no more than --max-failed hosts failed.
+if (args.max_failed is not None and failed > args.max_failed):
+    print('Error: {} hosts failed. No more than {} are allowed.'.
+          format(failed, args.max_failed), file=sys.stderr)
+    sys.exit(E_NOTENOUGHTIME)
 
 # Sort the times.
 times.sort()
@@ -143,8 +156,8 @@ if not args.quiet:
     # how much the remote clocks agree.
     print('Time adjustment: {:.2f} seconds'.format(adjustment.total_seconds()))
     print('{} remote clocks returned usable time information, {} did not.'.
-          format(len(times), len(args.host) - len(times)))
-    if len(times) > 1:
+          format(succeeded, failed))
+    if succeeded > 1:
         print('Remote clocks deviate by {}'.format(interval))
 
 if not args.dry_run:

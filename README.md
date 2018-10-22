@@ -72,6 +72,8 @@ optional arguments:
   -u USER, --user USER  when started with high privileges, run as this user
                         instead (default: nobody)
   --max-adjust seconds  do not change the clock more than this many seconds
+  --max-failed N        do not change the clock if more than N servers failed
+                        to send a usable date and time
   -q, --quiet           do not show warnings and adjustment information
 ```
 
@@ -93,6 +95,10 @@ To reflect that, the option `--max-adjust` can be used.
 It instructs `httpsdate.py` to bail out without modifying the system clock if the new time is too far from the current system time.
 Together with infrequent synchronisations, this helps prevent malicious servers from deliberately changing the system clock (much).
 Reasonable values are a few minutes or seconds, depending on the usual clock drift and the synchronisation frequency.
+
+Similarly, `--max-failed` limits the fault tolerance of `httpsdate.py`.
+It will not change the system clock if more than this many remote servers failed to send a usable time.
+Reasons for not getting a usable time include invalid X.509 certificates, TLS parameter incompatibilities or missing or invalid `Date` headers.
 
 Requirements
 ============
@@ -127,7 +133,10 @@ Man-in-the-Middle and Rogue Servers
 -----------------------------------
 
 A man-in-the-middle attacker who also controls (at least) one of the queried servers can easily drop connections to the servers they do not control and therefore force a single usable time value.
-`httpsdate.py` currently has no protection against this.
+
+Using the parameter `--max-failed` provides some protection in this scenario as the acceptable number of failed remote servers - e.g. due to dropped connections - can be limited.
+This effectively raises the number of servers that need to be under the control of the attacker.
+Still, more than half of the responses need to be correct to ensure that the system clock is set to a correct time.
 
 Software Bugs
 -------------
