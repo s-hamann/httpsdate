@@ -104,9 +104,23 @@ Requirements
 ============
 
 * Linux Kernel 3.5 or newer
-* Python 3.3 or newer
+* Python 3.4.3 or newer
 * python-prctl
 * a moderately correct system time to begin with (a few months off should be OK)
+
+`httpsdate.py` should also run on Python 3.3.
+Before 3.4.3 Python did not validate HTTPS certificates by default, thus rendering HTTPS vulnerable to man-in-the-middle attacks, unless the respective code sets up validation.
+`httpsdate.py` relies on Python do the right thing and should therefore not be used with Python versions before 3.4.3 (unless they are patched, that is).
+
+In case of doubt, one can run
+```sh
+httpsdate.py -n self-signed.badssl.com
+```
+or
+```sh
+python3 -c 'from urllib.request import urlopen; urlopen("https://self-signed.badssl.com")'
+```
+If either command throws an error containing `CERTIFICATE_VERIFY_FAILED`, all is well and Python *does* validate certificates.
 
 Security Considerations
 =======================
