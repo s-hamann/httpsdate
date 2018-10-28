@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """httpsdate.py is a script for secure time synchronisation"""
-__version__ = '0.1.0'
+__version__ = '0.2.0'
 
 import argparse
 import os
