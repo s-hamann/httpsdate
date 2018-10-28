@@ -122,6 +122,17 @@ python3 -c 'from urllib.request import urlopen; urlopen("https://self-signed.bad
 ```
 If either command throws an error containing `CERTIFICATE_VERIFY_FAILED`, all is well and Python *does* validate certificates.
 
+Installation
+============
+
+No installation is required.
+It is enough to download and run `httpsdate.py`.
+
+For convenience, `httpsdate.py` can also be installed using `pip`:
+```sh
+pip install httpsdate
+```
+
 Security Considerations
 =======================
 
