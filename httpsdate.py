@@ -10,6 +10,7 @@ import sys
 import time
 import urllib.request
 
+from concurrent import futures
 from datetime import datetime, timezone
 from statistics import median
 
@@ -55,18 +56,25 @@ def drop_privileges(user):
     prctl.set_no_new_privs(1)
 
 
-def get_date(host):
+def get_date(host, timeout):
     """Send a HEAD request via HTTPS to the given host and return the
     contents of the Date header.
 
     :host: the FQDN to get the date from
+    :timeout: timeout in seconds
     :returns: datetime object containing the data from the Date header
     """
-    request = urllib.request.Request('https://{}/'.format(host), method='HEAD')
-    request.add_header('User-Agent', 'httpsdate.py')
-    response = urllib.request.urlopen(request)
-    date = datetime.strptime(response.info()['Date'],
-                             '%a, %d %b %Y %H:%M:%S GMT')
+    try:
+        request = urllib.request.Request('https://{}/'.format(host),
+                                         method='HEAD')
+        request.add_header('User-Agent', 'httpsdate.py')
+        response = urllib.request.urlopen(request, timeout=timeout)
+        date = datetime.strptime(response.info()['Date'],
+                                '%a, %d %b %Y %H:%M:%S GMT')
+    except Exception as e:
+        # Add the current host name to whatever exception is raised.
+        e.host = host
+        raise e
     return date
 
 
@@ -79,6 +87,9 @@ parser.add_argument('-n', '--dry-run', default=False, action='store_true',
 parser.add_argument('-u', '--user', default='nobody',
                     help='when started with high privileges, '
                     'run as this user instead (default: %(default)s)')
+parser.add_argument('-t', '--timeout', metavar='seconds', type=int, default=3,
+                    help='HTTPS network response timeout '
+                    '(default: %(default)s seconds)')
 parser.add_argument('--max-adjust', metavar='seconds', type=int,
                     help='do not change the clock more than this many seconds')
 parser.add_argument('--max-failed', metavar='N', type=int,
@@ -105,17 +116,20 @@ if prctl.cap_effective.setpcap:
     # means that we have all of them.
     drop_privileges(args.user)
 
-# Get the time from all hosts.
-times = []
-for host in args.host:
-    try:
-        t = get_date(host)
-    except (urllib.error.HTTPError, urllib.error.URLError, ValueError) as e:
-        if not args.quiet:
-            print('Warning: Could not get time from {host}: {error}'.
-                  format(host=host, error=str(e)), file=sys.stderr)
-        continue
-    times.append(t)
+# Get the time from all hosts in parallel.
+with futures.ThreadPoolExecutor() as pool:
+    threads = [pool.submit(get_date, host, args.timeout) for host in args.host]
+    times = []
+    for f in futures.as_completed(threads):
+        try:
+            t = f.result()
+        except (urllib.error.HTTPError, urllib.error.URLError,
+                ValueError) as e:
+            if not args.quiet:
+                print('Warning: Could not get time from {host}: {error}'.
+                    format(host=e.host, error=str(e)), file=sys.stderr)
+            continue
+        times.append(t)
 
 succeeded = len(times)
 failed = len(args.host) - len(times)

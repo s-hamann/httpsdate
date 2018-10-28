@@ -71,6 +71,8 @@ optional arguments:
   -n, --dry-run         do not actually set the system clock
   -u USER, --user USER  when started with high privileges, run as this user
                         instead (default: nobody)
+  -t seconds, --timeout seconds
+                        HTTPS network response timeout (default: 3 seconds)
   --max-adjust seconds  do not change the clock more than this many seconds
   --max-failed N        do not change the clock if more than N servers failed
                         to send a usable date and time
@@ -99,6 +101,10 @@ Reasonable values are a few minutes or seconds, depending on the usual clock dri
 Similarly, `--max-failed` limits the fault tolerance of `httpsdate.py`.
 It will not change the system clock if more than this many remote servers failed to send a usable time.
 Reasons for not getting a usable time include invalid X.509 certificates, TLS parameter incompatibilities or missing or invalid `Date` headers.
+
+For better accuracy control, `--timeout` can be used to change the HTTPS network timeout for the connections to the remote servers.
+Remote servers that do not respond within the time limit are simply skipped and count as failed.
+This can help reducing the delay between obtaining the remote time and actually changing the system clock.
 
 Requirements
 ============
