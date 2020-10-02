@@ -4,6 +4,14 @@ httpsdate.py
 This is a (fairly) simple python script that sets the system clock to a value obtained from a set of HTTPS servers.
 This provides a simple and secure, but not very accurate method of time synchronisation.
 
+Development status
+==================
+
+This script is **no longer maintained**.
+It was a good idea at the time of writing it, but now [NTS](https://www.rfc-editor.org/rfc/rfc8915.html) is available, which is standardised and offers better accuracy.
+Please use NTS instead.
+It is supported by at least [NTPSec](https://www.ntpsec.org/) and [chrony](https://chrony.tuxfamily.org/).
+
 Why?
 ====
 
